@@ -1,14 +1,18 @@
 import subprocess
 import json
-import os
+import sys
+from pathlib import Path
+
 from flask import Flask, jsonify, request
+
 
 app = Flask(__name__)
 
-PROJECT_ROOT = "/home/node/Disaparo-2tech/disparoo"
-PYTHON_PATH = os.path.join(PROJECT_ROOT, ".venv", "bin", "python3")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_PATH = sys.executable
 
-@app.route("/disparo-2", methods=["GET"])
+
+@app.route("/disparo-2", methods=["GET", "POST"])
 def get_stats():
     try:
         body = request.get_json(silent=True) or {}
@@ -19,25 +23,31 @@ def get_stats():
             capture_output=True,
             text=True,
             timeout=300,
-            cwd=PROJECT_ROOT
+            cwd=str(PROJECT_ROOT)
         )
+
+        linhas = processo.stdout.strip().splitlines()
+        resultado_json = None
+
+        for linha in reversed(linhas):
+            linha = linha.strip()
+
+            if linha.startswith("{") and linha.endswith("}"):
+                try:
+                    resultado_json = json.loads(linha)
+                    break
+                except json.JSONDecodeError:
+                    pass
 
         if processo.returncode != 0:
             return jsonify({
                 "status": "erro",
                 "mensagem": "Erro ao rodar script Selenium",
-                "stderr": processo.stderr,
-                "stdout": processo.stdout
+                "returncode": processo.returncode,
+                "resultado": resultado_json,
+                "stdout": processo.stdout,
+                "stderr": processo.stderr
             }), 500
-
-        linhas = processo.stdout.strip().splitlines()
-        resultado_json = {}
-
-        for linha in reversed(linhas):
-            linha = linha.strip()
-            if linha.startswith("{") and linha.endswith("}"):
-                resultado_json = json.loads(linha)
-                break
 
         if not resultado_json:
             return jsonify({
@@ -47,10 +57,26 @@ def get_stats():
                 "stderr": processo.stderr
             }), 500
 
-        return jsonify(resultado_json)
+        if "error" in resultado_json:
+            return jsonify({
+                "status": "erro",
+                "mensagem": "Script retornou erro",
+                "resultado": resultado_json,
+                "stdout": processo.stdout,
+                "stderr": processo.stderr
+            }), 500
+
+        return jsonify({
+            "status": "ok",
+            "dados": resultado_json
+        }), 200
 
     except Exception as e:
-        return jsonify({"status": "erro", "mensagem": str(e)}), 500
+        return jsonify({
+            "status": "erro",
+            "mensagem": str(e)
+        }), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5090)

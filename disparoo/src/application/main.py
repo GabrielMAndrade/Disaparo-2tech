@@ -2,6 +2,8 @@ import json
 import os
 import shutil
 import signal
+import sys
+from pathlib import Path
 from time import sleep
 
 from dotenv import load_dotenv
@@ -11,10 +13,14 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.service.driverService import criar_driver
-from src.utils.helpers import kill_chrome_by_profile
+from src.utils.helpers import kill_chrome_by_profile, salvar_print_debug
 
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env", override=False)
+
 
 driver = None
 tmp_profile = None
@@ -26,7 +32,9 @@ def carregar_config():
     url = os.getenv("URL_2TECH")
 
     if not username or not password or not url:
-        raise RuntimeError("ambiente não definido. Verifique 2TECH_USUARIO, 2TECH_SENHA e URL_2TECH no .env")
+        raise RuntimeError(
+            "Ambiente não definido. Verifique 2TECH_USUARIO, 2TECH_SENHA e URL_2TECH no .env"
+        )
 
     return {
         "username": username,
@@ -84,14 +92,26 @@ try:
         "resultado": num_pp
     }, ensure_ascii=False))
 
-
-
 except Exception as e:
-    print(json.dumps({"error": str(e)}, ensure_ascii=False))
+    print_path = None
+
+    if driver:
+        print_path = salvar_print_debug(driver, BASE_DIR / "src" / "utils")
+
+    print(json.dumps({
+        "error": str(e),
+        "type": type(e).__name__,
+        "print_path": print_path
+    }, ensure_ascii=False))
+
+    sys.exit(1)
 
 finally:
     if os.name != "nt":
-        kill_chrome_by_profile(tmp_profile)
+        try:
+            kill_chrome_by_profile(tmp_profile)
+        except Exception:
+            pass
 
     if driver:
         try:
@@ -99,15 +119,15 @@ finally:
         except Exception:
             pass
 
-    try:
-        p = getattr(getattr(driver, "service", None), "process", None)
-        if p and p.poll() is None:
-            try:
-                os.kill(p.pid, signal.SIGKILL)
-            except Exception:
-                pass
-    except Exception:
-        pass
+        try:
+            p = getattr(getattr(driver, "service", None), "process", None)
+            if p and p.poll() is None:
+                try:
+                    os.kill(p.pid, signal.SIGKILL)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     if tmp_profile:
         try:
