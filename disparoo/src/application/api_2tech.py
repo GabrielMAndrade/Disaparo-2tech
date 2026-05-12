@@ -5,10 +5,10 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-PROJECT_ROOT = "/home/node/Ranking_2tech"
+PROJECT_ROOT = "/home/node/Disaparo-2tech/disparoo"
 PYTHON_PATH = os.path.join(PROJECT_ROOT, ".venv", "bin", "python3")
 
-@app.route("/ranking", methods=["GET"])
+@app.route("/disparo-2", methods=["GET"])
 def get_stats():
     try:
         body = request.get_json(silent=True) or {}
