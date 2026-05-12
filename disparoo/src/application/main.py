@@ -38,7 +38,7 @@ def carregar_config():
 try:
     config = carregar_config()
 
-    driver, tmp_profile = criar_driver(False)
+    driver, tmp_profile = criar_driver(True)
     wait = WebDriverWait(driver, 30)
 
     driver.get(config["url"])
