@@ -53,4 +53,4 @@ def get_stats():
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5030)
+    app.run(host="0.0.0.0", port=5090)
