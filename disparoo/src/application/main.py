@@ -82,7 +82,7 @@ try:
     elemento_qtd_pp = wait.until(
         EC.presence_of_element_located((
             By.XPATH,
-            "/html/body/div[6]/div[2]/section/div[2]/div/div/div[6]/div/div[2]/div/h3"
+            "/html/body/div[6]/div[2]/section/div[2]/div/div/div[11]/div/div[2]/div/h3"
         ))
     )
 
